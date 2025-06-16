@@ -1,16 +1,19 @@
-# Generating the final version of the Streamlit E-E-A-T Audit Toolkit with all features.
-
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 import json
-import spacy
 from urllib.parse import urlparse
 from fpdf import FPDF
 import datetime
+import subprocess
+import spacy
 
-# Load spaCy model
-nlp = spacy.load("en_core_web_sm")
+# Load spaCy model with fallback installer
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    nlp = spacy.load("en_core_web_sm")
 
 # Dandelion API Token
 DANDELION_TOKEN = "928aeec989914427a4a2c1ddc0f5edf1"
@@ -20,6 +23,8 @@ st.title("🔍 E-E-A-T Audit Toolkit")
 st.markdown("Analyze Experience, Expertise, Authoritativeness, and Trustworthiness signals from any web page.")
 
 url = st.text_input("Enter a URL to audit", "https://example.com")
+
+# ========== Helper Functions ==========
 
 def extract_dandelion_entities(text, token):
     endpoint = "https://api.dandelion.eu/datatxt/nex/v1/"
@@ -71,6 +76,8 @@ def export_to_pdf(results, filename="eeat_audit_report.pdf"):
     pdf.output(filename)
     return filename
 
+# ========== Scoring Functions ==========
+
 def score_experience(has_author, has_bio, updated_text):
     score = 0
     if has_author:
@@ -118,6 +125,8 @@ def score_trustworthiness(external_links):
         return 1
     else:
         return 0
+
+# ========== Main Audit Logic ==========
 
 if st.button("Run Audit"):
     try:
@@ -202,7 +211,7 @@ if st.button("Run Audit"):
             "Total E-E-A-T Score": f"{total_score}/20"
         }
 
-        # Download button
+        # PDF Export
         filename = "eeat_audit_report.pdf"
         export_to_pdf(report_data, filename)
         with open(filename, "rb") as file:
@@ -210,4 +219,3 @@ if st.button("Run Audit"):
 
     except Exception as e:
         st.error(f"Error: {str(e)}")
-
